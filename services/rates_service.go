@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
 )
+
+var _ = godotenv.Load()
 
 type RatesCache struct {
 	mutex	sync.RWMutex
-	Base	string
 	Rates	map[string]float64
 	Fetched	time.Time
 	TTL	time.Duration
@@ -35,15 +37,15 @@ type ClientApiRes struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-func FetchRates(base string, symbols []string) (map[string]float64, error) {
+func FetchRates(symbols string) (map[string]float64, error) {
 	url := fmt.Sprintf(
 		"%s/latest?access_key=%s&base=%s",
 		XCHANGE_RATE_BASE_URL,
 		XCHANGE_RATE_API_KEY,
-		base,
+		"USD",
 	)
-	if len(symbols) > 0 {
-		url += "&symbols=" + strings.Join(symbols, ",")
+	if symbols != "" {
+		url += "&symbols=" + symbols
 	}
 
 	client := http.Client{Timeout: 10*time.Second}
@@ -57,7 +59,7 @@ func FetchRates(base string, symbols []string) (map[string]float64, error) {
 	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
 		return nil, err
 	}
-
+	fmt.Println(data)
 	if !data.Success {
 		return nil, fmt.Errorf("failed to fetch rates")
 	}
