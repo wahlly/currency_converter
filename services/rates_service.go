@@ -31,22 +31,19 @@ var (
 
 type ClientApiRes struct {
 	Success bool `json:"success"`
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp any `json:"timestamp"`
 	Base string `json:"base"`
 	Date string `json:"date"`
-	Rates map[string]float64 `json:"rates"`
+	Rates map[string]any `json:"rates"`
 }
 
-func FetchRates(symbols string) (map[string]float64, error) {
+func FetchRates() (map[string]any, error) {
 	url := fmt.Sprintf(
-		"%s/latest?access_key=%s&base=%s",
+		"%s/latest?access_key=%s&symbols=%s",
 		XCHANGE_RATE_BASE_URL,
 		XCHANGE_RATE_API_KEY,
-		"USD",
+		"NGN,USD,EUR,AUD,CAD,XAU,XAG,AED",
 	)
-	if symbols != "" {
-		url += "&symbols=" + symbols
-	}
 
 	client := http.Client{Timeout: 10*time.Second}
 	res, err := client.Get(url)
