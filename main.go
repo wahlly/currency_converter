@@ -12,6 +12,7 @@ import (
 
 func main() {
 	cache := services.NewRatesCache(1*time.Minute)
+	services.HandleRateUpdates(cache)
 	rc := &controllers.RatesController{Cache: cache}
 
 	mux := http.NewServeMux()

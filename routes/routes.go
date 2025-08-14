@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterRoutes(mux *http.ServeMux, rc *controllers.RatesController) {
-	mux.HandleFunc("GET /rates", rc.FetchRates)
+	mux.HandleFunc("GET /rates", rc.GetRates)
 }
