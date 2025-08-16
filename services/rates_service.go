@@ -1,26 +1,27 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 var _ = godotenv.Load()
 
-type RatesCache struct {
-	mutex	sync.RWMutex
-	Rates	map[string]float64
+type RatesService struct {
+	Redis	*redis.Client
 }
 
-func NewRatesCache(ttl time.Duration) *RatesCache {
-	return &RatesCache{Rates: make(map[string]float64)}
+func NewRatesService(redisClient *redis.Client) *RatesService {
+	return &RatesService{Redis: redisClient}
 }
 
 var (
@@ -63,20 +64,20 @@ func FetchRates() (map[string]float64, error) {
 	return data.Rates, nil
 }
 
-func (cache *RatesCache) GetRates() (map[string]float64) {
-	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
-	return cache.Rates
+func (rs *RatesService) GetRates(ctx context.Context) (map[string]float64, error) {
+	val, err := rs.Redis.Get(ctx, "rates").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var rates map[string]float64
+	if err := json.Unmarshal([]byte(val), &rates); err != nil {
+		return nil, err
+	}
+	return rates, nil
 }
 
-func (cache *RatesCache) SetRate(rates map[string]float64) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-
-	cache.Rates = rates
-}
-
-func HandleRateUpdates(cache *RatesCache) {
+func HandleRateUpdates(ctx context.Context, redisClient *redis.Client) {
 	go func ()  {
 		for {
 			rates, err := FetchRates()
@@ -85,7 +86,12 @@ func HandleRateUpdates(cache *RatesCache) {
 				for currency, rate := range rates{
 					rates[currency] = math.Round(rate * 100)/100
 				}
-				cache.SetRate(rates)
+				// cache.SetRate(rates)
+				rates_js, _ := json.Marshal(rates)
+				if err := redisClient.Set(ctx, "rates", rates_js, 15*time.Minute).Err(); err != nil {
+					log.Fatalf("unable to update rates: %s", err)
+					//notify and send logs
+				}
 			}
 
 			//run every 15 minutes, as the xchange rate site is updated every 15 minutes

@@ -1,19 +1,31 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+
+	"github.com/redis/go-redis/v9"
 	"github.com/wahlly/currency_converter/controllers"
 	"github.com/wahlly/currency_converter/routes"
 	"github.com/wahlly/currency_converter/services"
 )
 
 func main() {
-	cache := services.NewRatesCache(1*time.Minute)
-	services.HandleRateUpdates(cache)
-	rc := &controllers.RatesController{Cache: cache}
+	redisCient :=  redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+		Password: "",
+		DB: 0,
+	})
+	ctx := context.Background()
+	if err := redisCient.Ping(ctx).Err(); err != nil {
+		log.Fatalf("redis connection failed: %s", err)
+	}
+
+	rateService := services.NewRatesService(redisCient)
+	services.HandleRateUpdates(ctx, redisCient)
+	rc := &controllers.RatesController{RateService: rateService}
 
 	mux := http.NewServeMux()
 	routes.RegisterRoutes(mux, rc)
