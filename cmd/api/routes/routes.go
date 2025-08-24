@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/wahlly/currency_converter/controllers"
+	"github.com/wahlly/currency_converter/cmd/api/controllers"
 )
 
 func RegisterRoutes(mux *http.ServeMux, rc *controllers.RatesController) {

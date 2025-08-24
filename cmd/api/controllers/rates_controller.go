@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/wahlly/currency_converter/services"
+	"github.com/wahlly/currency_converter/cmd/api/services"
 )
 
 type RatesController struct {
